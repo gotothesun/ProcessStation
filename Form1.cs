@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -20,6 +20,7 @@ namespace ProcessStation
 
         private string strPath = "";
         private string strName = "";
+        private string strPrevent = "";
         private bool bAscending = true;
 
         public class ListViewItemComparer:System.Collections.IComparer
@@ -89,7 +90,7 @@ namespace ProcessStation
         {
             int iTotalProcess = RefreshView();
             int iLoadedProcess = listProcess.Items.Count;
-            toolStripStatusLabel3.Text = "系统目前正在运行的进程数为：" + iLoadedProcess.ToString() + "/" + iTotalProcess.ToString();
+            toolStripStatusLabel3.Text = String.Format("系统目前正在运行的进程数为：{0}/{1}", iLoadedProcess.ToString(), iTotalProcess.ToString());
             
         }
 
@@ -102,7 +103,7 @@ namespace ProcessStation
         {
             int iTotalProcess = RefreshView();
             int iLoadedProcess = listProcess.Items.Count;
-            toolStripStatusLabel3.Text = "系统目前正在运行的进程数为：" + iLoadedProcess.ToString() + "/" + iTotalProcess.ToString();
+            toolStripStatusLabel3.Text = String.Format("系统目前正在运行的进程数为：{0}/{1}", iLoadedProcess.ToString(), iTotalProcess.ToString());
 
         }
 
@@ -141,7 +142,7 @@ namespace ProcessStation
                 timer1.Start();
                 strName = listProcess.SelectedItems[0].Text;
                 strPath = listProcess.SelectedItems[0].SubItems[2].Text;
-                toolStripStatusLabel1.Text = "正在保护进程：" + strName;
+                toolStripStatusLabel1.Text = String.Format("正在保护进程：{0}     " + strName);
                 Debug.WriteLine(strPath);
             }
                 
@@ -149,23 +150,53 @@ namespace ProcessStation
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            Process[] ps = Process.GetProcessesByName(strName);
             int iTotalProcess = RefreshView();
             int iLoadedProcess = listProcess.Items.Count;
-            toolStripStatusLabel3.Text = "系统目前正在运行的进程数为：" + iLoadedProcess.ToString() + "/" + iTotalProcess.ToString();
-            foreach (ListViewItem item in listProcess.Items)
+            toolStripStatusLabel3.Text = String.Format("系统目前正在运行的进程数为：{0}/{1}", iLoadedProcess.ToString(), iTotalProcess.ToString());
+            if (strName != "")
             {
-                if (item.SubItems[0].Text.Equals(strName))
+                bool bFound = false;
+                foreach (ListViewItem item in listProcess.Items)
                 {
-                    Debug.WriteLine("请放心，进程安在。");
-                    return;
+                    if (item.SubItems[0].Text.Equals(strName))
+                    {
+                        Debug.WriteLine("请放心，进程安在。");
+                        bFound = true;
+                        break;
+                    }
                 }
-
+                if (!bFound)
+                {
+                    Process p = new Process();
+                    p.StartInfo.FileName = strPath;
+                    p.Start();
+                    Debug.WriteLine("进程不在，已重新启动！");
+                }
             }
-            Process p = new Process();
-            p.StartInfo.FileName = strPath;
-            p.Start();
-            Debug.WriteLine("进程不在，已重新启动！");
+            if(strPrevent!="")
+            {
+                Process[] ps = Process.GetProcessesByName(strPrevent);
+                if (ps.Count() == 0)
+                    return;
+                foreach(Process p in ps)
+                {
+                    p.Kill();
+                    Debug.WriteLine(String.Format("发现进程{0}，已杀死！", strPrevent));
+                }
+            }
+        }
+
+        private void buttonPrevent_Click(object sender, EventArgs e)
+        {
+            if (listProcess.SelectedItems.Count == 0)
+                MessageBox.Show("请选中你要进行阻止的进程！");
+            else
+            {
+                timer1.Start();
+                strPrevent = listProcess.SelectedItems[0].Text;
+                toolStripStatusLabel2.Text = String.Format("正在阻止进程：{0}     ", strPrevent);
+                Debug.WriteLine(strPrevent);
+            }
         }
     }
 }
